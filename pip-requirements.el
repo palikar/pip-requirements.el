@@ -144,6 +144,28 @@ Assumes Emacs is compiled with libxml."
         (url-retrieve (pip-requirements-pypi-url)
                       #'pip-requirements-callback nil t)))
 
+(defun pip-requirements-install-packages ()
+  "Install packages in the buffer."
+  (interactive)
+  (let* ((buf-content (buffer-substring (point-min) (point-max)))
+         (lines (split-string buf-content "\n"))
+         (pip-buffer (get-buffer-create "*pip-install*"))
+         (cur-buf (current-buffer))
+         )
+    (with-current-buffer pip-buffer (erase-buffer))
+    (dolist (line lines)
+      (if (and (not (= (length line) 0))
+               (not (eq 0 (call-process "pip" nil nil nil "show" (format "%s" line))))
+               (yes-or-no-p (format "%s is not installed. Intall it?" line)))
+          (progn
+            (display-buffer pip-buffer t)
+            (with-current-buffer pip-buffer
+              (insert (format "\n\nInstalling %s:\n" line))
+              (display-buffer pip-buffer t)
+              (fit-window-to-buffer (get-buffer-window pip-buffer))
+              (start-process "pip-installing" pip-buffer "pip" "install" "--user" line)))))
+    (message "")))
+
 
 (defun pip-requirements-complete-at-point ()
   "Complete at point in Pip Requirements Mode."
